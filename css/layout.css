@@ -19,6 +19,46 @@ body {
   }
 }
 
+#paragraph {
+	-webkit-border-radius:5px;
+	-moz-border-radius:5px;
+	border-radius:5px;				
+	background:#1e2731;
+	background-size: 100%;
+	opacity: .95;
+	line-height: 2;
+	border:5px solid  #fbeed5;
+	width:95%;
+	margin:0 auto 40px auto;
+	font-family: "Open Sans", Arial, Helvetica, sans-serif;
+	font-size:12px;
+	font-weight: 300;
+	color: #F5F5F5;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-o-box-sizing: border-box;
+}
+
+#paragraph .info-wrapper {
+		padding:10px;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-o-box-sizing: border-box;
+
+	}
+	
+	#paragraph a {
+		color:#c09853;
+		text-decoration:none;
+	}
+	
+	#paragraph p {
+		margin:auto;
+		max-width: 1000px;
+		font-size: 15px;
+		padding: 15px;
+	}
+
 #info {
 	-webkit-border-radius:5px;
 	-moz-border-radius:5px;
