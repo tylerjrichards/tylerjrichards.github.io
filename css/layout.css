@@ -9,7 +9,7 @@ body {
 	font-family: Helvetica, Arial, Verdana;
 	background: #efefef url('../img/ticks.png') repeat 0 0;
 	margin:15px 0 0 0;
-	font-size:12px;
+	font-size:10px;
 }
 
 @media screen and (max-width: 1020px) {
@@ -31,7 +31,7 @@ body {
 	width:95%;
 	margin:0 auto 40px auto;
 	font-family: "Open Sans", Arial, Helvetica, sans-serif;
-	font-size:12px;
+	font-size:10px;
 	font-weight: 300;
 	color: #F5F5F5;
 	-webkit-box-sizing: border-box;
@@ -188,7 +188,7 @@ body {
 			
 			.portfolio .text-category {
 				display:block;
-				font-size:9px;
+				font-size:12px;
 			}
 	
 	.portfolio:hover .label {
