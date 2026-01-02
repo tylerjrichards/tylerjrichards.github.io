@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tyler Richards | Bookshelf</title>
+  <style>
+    :root {
+      --ink: #000080;
+      --page: #ffffff;
+    }
+    body {
+      font-family: "Times New Roman", Times, serif;
+      background: var(--page);
+      color: var(--ink);
+      margin: 0 auto;
+      padding: 26px 20px 48px;
+      max-width: 820px;
+      line-height: 1.5;
+    }
+    h1 {
+      text-align: center;
+      margin: 0 0 10px;
+      padding-bottom: 4px;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--ink);
+    }
+    .intro {
+      text-align: center;
+      font-size: 1rem;
+      margin: 12px 0 12px;
+      font-style: italic;
+    }
+    .timestamp {
+      text-align: center;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      min-height: 1.2em;
+    }
+    .favorites-wrap {
+      border: 2px solid var(--ink);
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+    .favorites-title {
+      font-weight: bold;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      font-size: 0.95rem;
+      letter-spacing: 0.5px;
+    }
+    .book-wrap {
+      border: 1px solid var(--ink);
+      padding: 12px 14px;
+    }
+    .book-list {
+      margin: 6px 0 0;
+    }
+    .book-item {
+      margin: 6px 0;
+      padding: 2px 0;
+      font-size: 1rem;
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 18px 14px 36px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>TYLER'S BOOKSHELF</h1>
+  <div class="intro">
+    I get asked for my bookshelf on a semi-frequent basis, so I decided to put a list of books I have finished (not necessarily liked!) below. First 5 books are my top 5, the rest are shuffled on every page load. Please
+    <a href="mailto:tylerjrichards@gmail.com">recommend better books to me</a>.
+  </div>
+  <div class="timestamp" id="timestamp">Loading…</div>
+  <div class="favorites-wrap">
+    <div class="favorites-title">Current favorites</div>
+    <div id="favorites-list" class="book-list"></div>
+  </div>
+  <div class="book-wrap">
+    <div id="book-list" class="book-list">Loading…</div>
+  </div>
+
+  <script src="assets/bookshelf-data.js"></script>
+  <script>
+    const timestampEl = document.getElementById('timestamp');
+    const favoritesEl = document.getElementById('favorites-list');
+    const listEl = document.getElementById('book-list');
+
+    const banned = new Set([
+      'ugly love',
+      'trust',
+      'invitation to a banquet',
+      'two cheers for anarchism',
+      'stranger in a strange land',
+      'summary of the rise and fall of american growth',
+      'crabgrass frontier',
+      'the house of morgan',
+      'eternal sunshine of the spotless mind',
+      'ugly love: a novel',
+      'anora',
+      'the order',
+      '6-month gold gift membership',
+      'prime membership fee',
+      'citizen kane',
+      'steelheart',
+      'paramount+ with showtime',
+      'the shawshank redemption',
+      'dead poets society',
+      'not applicable',
+      'the guns of august',
+      'showtime',
+      'whiplash',
+      'high school musical',
+      "ocean's 8",
+      'ford v ferrari',
+      'applecare+',
+      'dune',
+      'captain marvel',
+      'crazy rich asians',
+      'audible premium plus'
+    ]);
+
+    const topPicks = [
+      'The Goal',
+      "Poor Charlie's Almanack",
+      'The Fish that ate the Whale',
+      'The Way of Kings',
+      'Three body problem'
+    ];
+
+    const topPicksLinks = {
+      'The Goal': 'https://www.amazon.com/Goal-Process-Ongoing-Improvement/dp/0884271951',
+      "Poor Charlie's Almanack": 'https://a.co/d/8GsfNeT',
+      'The Fish that ate the Whale': 'https://a.co/d/hvIJkRi',
+      'The Way of Kings': 'https://www.amazon.com/Way-Kings-Stormlight-Archive-Book/dp/0765326353',
+      'Three body problem': 'https://www.amazon.com/Three-Body-Problem-Cixin-Liu/dp/0765377063'
+    };
+
+    const topLower = new Set(topPicks.map(t => t.toLowerCase()));
+
+    function hydrate(data) {
+      const collected = [];
+
+      // Normalize series names - map variations to canonical names
+      const seriesNormalize = (seriesName) => {
+        const lower = seriesName.toLowerCase();
+        // Map "The Three-Body Problem Series" to "Remembrance of Earth's Past"
+        if (lower.includes('three-body problem') || lower.includes('remembrance of earth')) {
+          return 'remembrance of earth\'s past';
+        }
+        // Map other common variations
+        if (lower.includes('stormlight archive')) return 'stormlight archive';
+        if (lower.includes('red rising')) return 'red rising';
+        if (lower.includes('sun eater')) return 'sun eater';
+        if (lower.includes('hierarchy')) return 'hierarchy';
+        if (lower.includes('nexus')) return 'nexus';
+        if (lower.includes('jurassic park')) return 'jurassic park';
+        if (lower.includes('hyperion cantos')) return 'hyperion cantos';
+        if (lower.includes('children of time')) return 'children of time';
+        // Normalize "daemon" and "daimon" to same series
+        if (lower === 'daemon' || lower === 'daimon' || lower.includes('daemon') || lower.includes('daimon')) {
+          return 'daemon';
+        }
+        // Normalize "ready player" variations
+        if (lower.includes('ready player')) {
+          return 'ready player one';
+        }
+        return lower;
+      };
+
+      // Extract series key from title
+      const seriesKey = (title) => {
+        // Try pattern like "(Series Name, #1)" or "(Series Name Book 1)" or "(Daemon #2)" or "(The Three-Body Problem Series Book 2)"
+        const paren = title.match(/\(([^)]*?)(?:#|book)\s*(\d+)[^)]*\)/i);
+        if (paren && paren[1]) {
+          // Remove trailing "Series", "Book", "Part" etc. but keep the main series name
+          // Also handle cases where series name comes right before # (like "Daemon #2")
+          let cleaned = paren[1].replace(/,?\s*(series|book|part).*$/i, '').trim();
+          // Remove trailing spaces before # if any
+          cleaned = cleaned.replace(/\s+$/, '').trim();
+          if (cleaned) return seriesNormalize(cleaned);
+        }
+        // Try pattern like "Series Name Book 2" or "Series Name #2" (not in parentheses)
+        const bookMatch = title.match(/(.+?)\s+(?:book|#)\s*(\d+)/i);
+        if (bookMatch && bookMatch[1]) {
+          return seriesNormalize(bookMatch[1].trim());
+        }
+        const hints = ['sun eater', 'hierarchy', 'nexus', 'jurassic', 'trilogy', 'saga', 'chronicle', 'daemon', 'daimon', 'ready player'];
+        const lower = title.toLowerCase();
+        for (const hint of hints) {
+          if (lower.includes(hint)) return seriesNormalize(hint);
+        }
+        return null;
+      };
+
+      // Extract book number from title
+      const getBookNumber = (title) => {
+        const paren = title.match(/\([^)]*?(?:#|book)\s*(\d+)[^)]*\)/i);
+        if (paren && paren[1]) return parseInt(paren[1], 10);
+        const bookMatch = title.match(/(?:book|#)\s*(\d+)/i);
+        if (bookMatch && bookMatch[1]) return parseInt(bookMatch[1], 10);
+        return null;
+      };
+
+      // Extract main title (before colon or parentheses) for comparison
+      const getMainTitle = (title) => {
+        // Remove everything after colon
+        let main = title.split(':')[0].trim();
+        // Remove everything in parentheses
+        main = main.replace(/\([^)]*\)/g, '').trim();
+        // Remove trailing punctuation and extra spaces
+        main = main.replace(/[.,;]\s*$/, '').trim();
+        main = main.toLowerCase();
+        // Remove leading articles for better matching (e.g., "the rise of endymion" -> "rise of endymion")
+        main = main.replace(/^(the|a|an)\s+/i, '');
+        return main;
+      };
+
+      // Get a unique key for a book (main title + series, ignoring book number for matching)
+      // This allows matching "Book (Series, #1)" with "Book (Series)"
+      const getBookKey = (title) => {
+        const mainTitle = getMainTitle(title);
+        const series = seriesKey(title);
+        // Include series in key if present, so same book in same series matches
+        if (series) {
+          return `${mainTitle}::${series}`;
+        }
+        return mainTitle;
+      };
+
+      // Track all versions of each book to prefer shorter/cleaner titles
+      const bookVersions = new Map();
+
+      const pushTitle = (title) => {
+        if (!title) return;
+        const clean = title.trim();
+        if (!clean) return;
+        const lower = clean.toLowerCase();
+        if (banned.has(lower)) return;
+        
+        // Use smarter deduplication
+        const bookKey = getBookKey(clean);
+        if (!bookVersions.has(bookKey)) {
+          bookVersions.set(bookKey, []);
+        }
+        bookVersions.get(bookKey).push(clean);
+      };
+
+      const gd = data.goodreads || {};
+      (gd.currently_reading || []).forEach(item => pushTitle(item.title));
+      Object.values(gd.read_by_year || {}).forEach(list => {
+        list.forEach(item => pushTitle(item.title));
+      });
+      const az = data.amazon || {};
+      (az.purchases || []).forEach(item => pushTitle(item.title));
+
+      // Choose the best version of each book
+      // Priority: 1) Has book number, 2) No colon, 3) Shorter
+      bookVersions.forEach((versions, key) => {
+        if (versions.length === 1) {
+          collected.push(versions[0]);
+        } else {
+          // Prefer versions with book numbers (more complete)
+          const withNumber = versions.filter(v => getBookNumber(v) !== null);
+          const candidates = withNumber.length > 0 ? withNumber : versions;
+          
+          // Among those, prefer versions without colon
+          const withoutColon = candidates.filter(v => !v.includes(':'));
+          const finalCandidates = withoutColon.length > 0 ? withoutColon : candidates;
+          
+          // Sort by length, prefer shorter
+          finalCandidates.sort((a, b) => a.length - b.length);
+          collected.push(finalCandidates[0]);
+        }
+      });
+
+      const rest = collected.filter(title => !topLower.has(title.toLowerCase()));
+
+      const groupMap = new Map();
+      const groups = [];
+      rest.forEach(title => {
+        const key = seriesKey(title) || title.toLowerCase();
+        if (!groupMap.has(key)) {
+          const bucket = [];
+          groupMap.set(key, bucket);
+          groups.push(bucket);
+        }
+        groupMap.get(key).push(title);
+      });
+
+      // Sort books within each group by book number
+      groupMap.forEach((group, key) => {
+        // Only sort if group has multiple items and at least one has a book number
+        if (group.length > 1) {
+          const hasNumbers = group.some(title => getBookNumber(title) !== null);
+          if (hasNumbers) {
+            group.sort((a, b) => {
+              const numA = getBookNumber(a);
+              const numB = getBookNumber(b);
+              if (numA === null && numB === null) return 0;
+              if (numA === null) return 1;
+              if (numB === null) return -1;
+              return numA - numB;
+            });
+          }
+        }
+      });
+
+      for (let i = groups.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [groups[i], groups[j]] = [groups[j], groups[i]];
+      }
+
+      favoritesEl.innerHTML = '';
+      topPicks.forEach(title => {
+        const row = document.createElement('div');
+        row.className = 'book-item';
+        const link = document.createElement('a');
+        link.href = topPicksLinks[title] || '#';
+        link.textContent = title;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        if (topPicksLinks[title]) {
+          row.appendChild(link);
+        } else {
+          row.textContent = title;
+        }
+        favoritesEl.appendChild(row);
+      });
+
+      const ordered = [];
+      groups.forEach(group => ordered.push(...group));
+
+      listEl.innerHTML = '';
+      ordered.forEach(title => {
+        const row = document.createElement('div');
+        row.className = 'book-item';
+        row.textContent = title;
+        listEl.appendChild(row);
+      });
+
+      timestampEl.textContent = '';
+    }
+
+    try {
+      const data = (typeof window !== 'undefined') ? window.BOOKSHELF_DATA : null;
+      if (data) {
+        hydrate(data);
+      } else {
+        timestampEl.textContent = 'Could not load bookshelf data right now.';
+        listEl.textContent = '';
+      }
+    } catch (error) {
+      console.error('Failed to load bookshelf data', error);
+      timestampEl.textContent = 'Could not load bookshelf data right now.';
+      listEl.textContent = '';
+    }
+  </script>
+</body>
+</html>
